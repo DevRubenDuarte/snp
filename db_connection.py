@@ -56,18 +56,27 @@ def execute_rows(sql: str, params: Optional[Iterable[Any]] = None) -> Iterable[T
             cur.execute(sql, params or ())
             for row in cur:
                 yield row
-def execute_sql_file(sql_file: str, params: Optional[Iterable[Any]] = None) -> None:
+
+def execute_sql_file(sql_file_path: str, params: Optional[Iterable[Any]] = None) -> None:
     """
-    Execute sql file
+    Execute all SQL statements contained in a .sql file using a fresh connection.
     """
+    abs_path = os.path.abspath(sql_file_path)
+    if not os.path.isfile(abs_path):
+        raise FileNotFoundError(f"SQL file not found: {sql_file_path}")
+    with open(abs_path, "r", encoding="utf-8") as f:
+        sql_text = f.read()
     with get_connection() as conn:
         with conn.cursor() as cur:
-            
+            # psycopg can execute multiple statements in one execute when autocommit=True
+            cur.execute(sql_text, params or ())
+
 
 __all__ = [
     "get_connection",
     "execute_scalar",
     "execute_rows",
+    "execute_sql_file",
 ]
 
 
