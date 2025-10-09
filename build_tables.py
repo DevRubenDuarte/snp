@@ -1,6 +1,6 @@
 import pandas as pd
 
-def create_tbl_loci_sql(tped) -> None:
+def create_tbl_loci_sql(tped: pd.DataFrame) -> None:
     # Create loci DataFrame
     loci = pd.DataFrame(
         columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
@@ -40,7 +40,7 @@ def create_tbl_loci_sql(tped) -> None:
                 f"({row['indexID']}, {row['chromossome']}, '{row['locusID']}', {row['distance']}, {row['embark8']}, NULL, NULL, NULL),\n"
             )
 
-def create_tbl_alleles_sql(tped, dog, source) -> None:
+def create_tbl_alleles_sql(tped: pd.DataFrame, dog: int, source: int) -> None:
     # Create alleles DataFrame
     alleles = pd.DataFrame(
         columns=["dogID","locusID","firstAllele","secondAllele","isHomozygous","sourceID"]

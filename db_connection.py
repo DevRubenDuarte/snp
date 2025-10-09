@@ -56,7 +56,13 @@ def execute_rows(sql: str, params: Optional[Iterable[Any]] = None) -> Iterable[T
             cur.execute(sql, params or ())
             for row in cur:
                 yield row
-
+def execute_sql_file(sql_file: str, params: Optional[Iterable[Any]] = None) -> None:
+    """
+    Execute sql file
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            
 
 __all__ = [
     "get_connection",
