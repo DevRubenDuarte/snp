@@ -1,5 +1,5 @@
 # Pandas for the tped import
 pandas
 
-# psycopg2 for the database connection
-psycopg2-binary
+# psycopg for the database connection
+psycopg

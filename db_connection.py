@@ -2,7 +2,11 @@ import os
 from typing import Any, Iterable, Optional, Tuple
 
 import psycopg
+from psycopg import sql
 
+import dotenv
+
+dotenv.load_dotenv()
 
 def _get_env(key: str, default: Optional[str] = None) -> str:
     value = os.getenv(key, default)
@@ -34,30 +38,7 @@ def get_connection() -> psycopg.Connection:  # type: ignore[name-defined]
     )
     return conn
 
-
-def execute_scalar(sql: str, params: Optional[Iterable[Any]] = None) -> Optional[Any]:
-    """
-    Execute a query expected to return a single value.
-    Returns the first column of the first row, or None if no rows.
-    """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params or ())
-            row = cur.fetchone()
-            return row[0] if row else None
-
-
-def execute_rows(sql: str, params: Optional[Iterable[Any]] = None) -> Iterable[Tuple[Any, ...]]:
-    """
-    Execute a query and yield rows as tuples.
-    """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params or ())
-            for row in cur:
-                yield row
-
-def execute_sql_file(sql_file_path: str, params: Optional[Iterable[Any]] = None) -> None:
+def execute_sql_file(sql_file_path: str) -> None:
     """
     Execute all SQL statements contained in a .sql file using a fresh connection.
     """
@@ -69,13 +50,11 @@ def execute_sql_file(sql_file_path: str, params: Optional[Iterable[Any]] = None)
     with get_connection() as conn:
         with conn.cursor() as cur:
             # psycopg can execute multiple statements in one execute when autocommit=True
-            cur.execute(sql_text, params or ())
+            cur.execute(sql_text)
 
 
 __all__ = [
     "get_connection",
-    "execute_scalar",
-    "execute_rows",
     "execute_sql_file",
 ]
 
