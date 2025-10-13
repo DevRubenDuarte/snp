@@ -36,21 +36,21 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
     except Exception as e:
         print(f"Error inserting into tbl_loci: {e}")
         raise
+    print("Loci added successfully.")
 
 def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
     # Create alleles DataFrame
     alleles = pd.DataFrame(
-        columns=["dogID","locusID","firstAllele","secondAllele","isHomozygous","sourceID"]
+        columns=["locusID","firstAllele","secondAllele","isHomozygous","sourceID", "dogID"]
     )
-
     # Assign values to alleles DataFrame from tped file
     alleles = alleles.assign(
-                dogID = dog,
                 locusID = tped[1],
                 firstAllele = tped[4],
                 secondAllele = tped[5],
                 isHomozygous = tped[4] == tped[5],
-                sourceID = source
+                sourceID = source,
+                dogID = dog
             )
     _map_bases(alleles)
 
@@ -62,7 +62,7 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
                     cur.execute(
                         '''
                         INSERT INTO "public"."tbl_alleles" (
-                        "lngDogID", "lngLocusID", "strFirstAllele", "strSecondAllele", "blnIsHomozygous", "intSourceID")
+                        "lngDogID", "strLocusID", "bytFirstAllele", "bytSecondAllele", "blnIsHomozygous", "lngSourceID")
                         VALUES (%s, %s, %s, %s, %s, %s)
                         ''',
                         (row['dogID'], row['locusID'], row['firstAllele'], row['secondAllele'], row['isHomozygous'], row['sourceID'])
@@ -70,6 +70,7 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
     except Exception as e:
         print(f"Error inserting into tbl_alleles: {e}")
         raise
+    print("Alleles added successfully.")
 
 def _map_bases(df: pd.DataFrame) -> None:
     mapping = {

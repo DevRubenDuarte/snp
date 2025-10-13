@@ -55,9 +55,3 @@ def execute_sql_file(sql_file_path: str) -> None:
             raise
 
 
-__all__ = [
-    "get_connection",
-    "execute_sql_file",
-]
-
-
