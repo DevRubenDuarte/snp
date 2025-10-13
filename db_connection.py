@@ -1,8 +1,7 @@
 import os
-from typing import Any, Iterable, Optional, Tuple
+from typing import Optional
 
 import psycopg
-from psycopg import sql
 
 import dotenv
 
@@ -14,10 +13,9 @@ def _get_env(key: str, default: Optional[str] = None) -> str:
         raise RuntimeError(f"Missing required environment variable: {key}")
     return value
 
-
-def get_connection() -> psycopg.Connection:  # type: ignore[name-defined]
+def get_connection() -> psycopg.Connection:
     """
-    Return a new psycopg (v3) connection using standard PG* env vars.
+    Return new psycopg connection
 
     Required env vars:
         - PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
@@ -47,10 +45,14 @@ def execute_sql_file(sql_file_path: str) -> None:
         raise FileNotFoundError(f"SQL file not found: {sql_file_path}")
     with open(abs_path, "r", encoding="utf-8") as f:
         sql_text = f.read()
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            # psycopg can execute multiple statements in one execute when autocommit=True
-            cur.execute(sql_text)
+        try:
+            with get_connection() as conn:
+                with conn.cursor() as cur:
+                    # psycopg can execute multiple statements in one execute when autocommit=True
+                    cur.execute(sql_text)
+        except psycopg.Error as e:
+            print(f"Error executing SQL: {e}")
+            raise
 
 
 __all__ = [

@@ -1,5 +1,3 @@
-# Pandas for the tped import
-pandas
-
-# psycopg for the database connection
-psycopg
+pandas      # data analysis
+psycopg     # PostgreSQL database adapter
+dotenv      # load environment variables from .env file
