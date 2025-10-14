@@ -1,4 +1,4 @@
-from build_tables import add_to_tbl_loci, add_to_tbl_alleles
+from db_connection import add_to_tbl_loci, add_to_tbl_alleles
 
 import pandas as pd
 
