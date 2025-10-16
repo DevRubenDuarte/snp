@@ -1,4 +1,4 @@
-import os
+import os, logging
 from typing import Optional
 
 import psycopg
@@ -6,6 +6,10 @@ import dotenv
 import pandas as pd
 
 dotenv.load_dotenv()
+
+def _get_logger() -> logging.Logger:
+    logging.basicConfig(level=logging.INFO)
+    return logging.getLogger(__name__)
 
 def _get_env(key: str, default: Optional[str] = None) -> str:
     value = os.getenv(key, default)
@@ -51,7 +55,6 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
     loci = pd.DataFrame(
         columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
     )
-
     # Create indexID as multiples of 8
     tped[6] = (tped.index + 1) * 8
 
@@ -65,6 +68,7 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
             )
 
     # add tbl_loci
+    logger = _get_logger()
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -78,9 +82,9 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
                         (row['indexID'], row['chromossome'], row['locusID'], row['distance'], row['embark8'])
                     )
     except Exception as e:
-        print(f"Error inserting into tbl_loci: {e}")
+        logger.error(f"Error inserting into tbl_loci: {e}")
         raise
-    print("Loci added successfully.")
+    logger.info("Loci added successfully.")
 
 def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
     # Create alleles DataFrame
@@ -100,6 +104,7 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
     _map_bases(alleles)
 
     # add tbl_alleles
+    logger = _get_logger()
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -113,8 +118,6 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
                         (row['dogID'], row['locusID'], row['firstAllele'], row['secondAllele'], row['isHomozygous'], row['sourceID'])
                     )
     except Exception as e:
-        print(f"Error inserting into tbl_alleles: {e}")
+        logger.error(f"Error inserting into tbl_alleles: {e}")
         raise
-    print("Alleles added successfully.")
-
-
+    logger.info("Alleles added successfully.")
