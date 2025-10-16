@@ -1,3 +1,4 @@
 pandas      # data analysis
 psycopg     # PostgreSQL database adapter
 dotenv      # load environment variables from .env file
+fastapi     # web framework

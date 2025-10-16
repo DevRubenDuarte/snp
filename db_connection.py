@@ -1,4 +1,5 @@
-import os, logging
+import os
+import logging
 from typing import Optional
 
 import psycopg
@@ -51,6 +52,7 @@ def get_connection() -> psycopg.Connection:
     return conn
 
 def add_to_tbl_loci(tped: pd.DataFrame) -> None:
+    print("in")
     # Create loci DataFrame
     loci = pd.DataFrame(
         columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
