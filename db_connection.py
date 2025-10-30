@@ -51,6 +51,13 @@ def get_connection() -> psycopg.Connection:
     return conn
 
 def add_to_tbl_loci(tped: pd.DataFrame) -> None:
+    """
+    Takes a tped dataframe and adds its loci to tbl_loci.
+
+    Args:
+        tped (pd.DataFrame): DataFrame representing the tped file.
+    """
+
     # Create loci DataFrame
     loci = pd.DataFrame(
         columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
@@ -98,6 +105,15 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
     logger.info("Loci added successfully.")
 
 def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
+    """
+    Takes a tped dataframe and adds its alleles to tbl_alleles.
+
+    Args:
+        tped (pd.DataFrame): DataFrame representing the tped file.
+        dog (int): Dog ID.
+        source (int): Source ID.
+    """
+
     # Create alleles DataFrame
     alleles = pd.DataFrame(
         columns=["locusID","firstAllele","secondAllele","isHomozygous","sourceID", "dogID"]

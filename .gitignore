@@ -161,6 +161,5 @@ cython_debug/
 
 # Project specific ignores
 *.sql
-*.tped
-*.tfam
-*.zip
+uploads/*
+test.ipynb
