@@ -52,7 +52,13 @@ def get_connection() -> psycopg.Connection:
     return conn
 
 def add_to_tbl_loci(tped: pd.DataFrame) -> None:
-    print("in")
+    """
+    Takes a tped dataframe and adds its loci to tbl_loci.
+
+    Args:
+        tped (pd.DataFrame): DataFrame representing the tped file.
+    """
+
     # Create loci DataFrame
     loci = pd.DataFrame(
         columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
@@ -71,24 +77,44 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
 
     # add tbl_loci
     logger = _get_logger()
+    batch_size = 10000
+    total_rows = len(loci)
+    logger.info(f"Starting to insert {total_rows} rows into tbl_loci in batches of {batch_size}...")
+
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                for _, row in loci.iterrows():
-                    cur.execute(
+                for start in range(0, total_rows, batch_size):
+                    end = min(start + batch_size, total_rows)
+                    batch = loci.iloc[start:end]
+                    values = [
+                        (row['indexID'], row['chromossome'], row['locusID'], row['distance'], row['embark8'], None, None, None)
+                        for _, row in batch.iterrows()
+                    ]
+                    cur.executemany(
                         '''
                         INSERT INTO "public"."tbl_loci" (
                         "lngLocusID", "intChromosome", "strLocusIdentifier", "lngDistance", "blnEmbark8", "blnVHL", "blnEmbark9", "blnMyDogDNA")
-                        VALUES (%s, %s, %s, %s, %s, NULL, NULL, NULL)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         ''',
-                        (row['indexID'], row['chromossome'], row['locusID'], row['distance'], row['embark8'])
+                        values
                     )
+                    logger.info(f"Inserted rows {start + 1} to {end} into tbl_loci.")
     except Exception as e:
         logger.error(f"Error inserting into tbl_loci: {e}")
         raise
     logger.info("Loci added successfully.")
 
 def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
+    """
+    Takes a tped dataframe and adds its alleles to tbl_alleles.
+
+    Args:
+        tped (pd.DataFrame): DataFrame representing the tped file.
+        dog (int): Dog ID.
+        source (int): Source ID.
+    """
+
     # Create alleles DataFrame
     alleles = pd.DataFrame(
         columns=["locusID","firstAllele","secondAllele","isHomozygous","sourceID", "dogID"]
@@ -107,18 +133,29 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
 
     # add tbl_alleles
     logger = _get_logger()
+    batch_size = 10000
+    total_rows = len(alleles)
+    logger.info(f"Starting to insert {total_rows} rows into tbl_alleles in batches of {batch_size}...")
+
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                for _, row in alleles.iterrows():
-                    cur.execute(
+                for start in range(0, total_rows, batch_size):
+                    end = min(start + batch_size, total_rows)
+                    batch = alleles.iloc[start:end]
+                    values = [
+                        (row['dogID'], row['locusID'], row['firstAllele'], row['secondAllele'], row['isHomozygous'], row['sourceID'])
+                        for _, row in batch.iterrows()
+                    ]
+                    cur.executemany(
                         '''
                         INSERT INTO "public"."tbl_alleles" (
                         "lngDogID", "strLocusID", "bytFirstAllele", "bytSecondAllele", "blnIsHomozygous", "lngSourceID")
                         VALUES (%s, %s, %s, %s, %s, %s)
                         ''',
-                        (row['dogID'], row['locusID'], row['firstAllele'], row['secondAllele'], row['isHomozygous'], row['sourceID'])
+                        values
                     )
+                    logger.info(f"Inserted rows {start + 1} to {end} into tbl_alleles.")
     except Exception as e:
         logger.error(f"Error inserting into tbl_alleles: {e}")
         raise

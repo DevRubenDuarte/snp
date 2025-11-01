@@ -1,4 +1,5 @@
 from db_connection import add_to_tbl_loci, add_to_tbl_alleles
+from zip_file_handler import unzip_file
 
 import pandas as pd
 from fastapi import FastAPI, UploadFile, HTTPException
