@@ -162,4 +162,5 @@ cython_debug/
 # Project specific ignores
 *.sql
 uploads/*
+roh/*
 test.ipynb

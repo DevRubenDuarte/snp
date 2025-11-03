@@ -1,11 +1,13 @@
 from db_connection import add_to_tbl_loci, add_to_tbl_alleles
 from zip_file_handler import unzip_file
+from plink_intregration import plink_roh
 
 import pandas as pd
 import os
 
 def main() -> None:
-    process_zip("uploads/289_223766.zip")
+    # process_zip("uploads/289_223766.zip")
+    plink_roh(input_file="uploads/289_223766_unzipped/31220610301956", output_folder="roh/31220610301956", plink_path="/home/artos/dogs_global/database/plink/plink")
 
 def process_zip(file_path: str) -> None:
     # Unzip the file
