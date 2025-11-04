@@ -3,8 +3,8 @@ import os
 
 def plink_roh(
         input_file: str, output_folder: str, plink_path: str ="./plink",
-        window_snp: int = 100, window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
-        homozyg_gap: int = 1000, homozyg_het: int = 1, homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000
+        window_snp: int = 50, window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
+        homozyg_gap: int = 1000, homozyg_het: int = 1000, homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000
     ) -> None:
 
     """
@@ -17,16 +17,23 @@ def plink_roh(
             plink_path (str):               Path to the PLINK executable (default: "plink")
         PLINK Parameters (with default values):
             Defining the scanning window:
-                window_snp (int):           Size of the scanning window in SNPs (default: 100)
+                window_snp (int):           Size of the scanning window in SNPs (default: 50)
                 window_het (int):           Maximum number of heterozygous calls allowed in the scanning window (default: 1)
                 window_missing (int):       Maximum number of missing calls allowed in the scanning window (default: 5)
                 window_threshold (float):   Minimum scanning window hit rate (default: 0.05)
             Tresholds for calling a homozygous segment:
                 homozyg_gap (int):          Maximum interval between two SNPs in a segment in kilobases (default: 1000)
-                homozyg_het (int):          Maximum number of heterozygous calls in a homozygous segment (default: 1)
+                homozyg_het (int):          Maximum number of heterozygous calls in a homozygous segment (default: 1000) - This flag is disabled by default in PLINK
                 homozyg_density (int):      Maximum inverse density of a homozygous segment (default: 50)
                 homozyg_snp (int):          Minimum number of SNPs in a homozygous segment (default: 100)
                 homozyg_kb (int):           Minimum length of a homozygous segment in kilobases (default: 1000)
+
+    Outputs:
+        Generates output files in the specified output folder:
+            .hh         	                List of het. haploid and nonmale Ychr genotypes.
+            .hom	                        Run-of-homozygosity list.
+            .hom.indiv		                Sample-based runs-of-homozygosity report.
+            .hom.summary    	            SNP-based runs-of-homozygosity report.
     """
 
     if not os.path.exists(input_file + ".tped"):
@@ -43,7 +50,7 @@ def plink_roh(
         "--homozyg-window-missing", str(window_missing),
         "--homozyg-window-threshold", str(window_threshold),
         "--homozyg-gap", str(homozyg_gap),
-        # "--homozyg-het", str(homozyg_het),
+        "--homozyg-het", str(homozyg_het),
         "--homozyg-density", str(homozyg_density),
         "--homozyg-snp", str(homozyg_snp),
         "--homozyg-kb", str(homozyg_kb),
