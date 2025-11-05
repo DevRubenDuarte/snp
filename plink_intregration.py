@@ -1,8 +1,72 @@
 import subprocess
 import os
 
-def plink_roh(
-        input_file: str, output_folder: str, plink_path: str ="./plink",
+def _plink_merge_ped_files(ped_file_main: str, ped_file_to_merge: str, plink_path: str ="./plink") -> str:
+    """
+    Merges two PED files using PLINK.
+
+    Args:
+        ped_file_main (str): The path to the main PED file (without extension).
+        ped_file_to_merge (str): The path to the file to merge (without extension).
+        plink_path (str): The path to the PLINK executable (default: "./plink").
+
+    Returns:
+        str: The path to the merged PED file (without extension).
+    """
+
+    output_ped_file = "merged_parentage" + ped_file_main
+    merge_command = [
+        plink_path,
+        "--file", ped_file_main,
+        "--merge", ped_file_to_merge,
+        "--out", output_ped_file
+    ]
+
+    try:
+        # Execute the PLINK command
+        result = subprocess.run(merge_command, check=True, text=True, capture_output=True)
+        print("PLINK output:")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("Error running PLINK:")
+        print(e.stderr)
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        raise
+    return output_ped_file
+
+def _plink_convert_tped_to_ped(tped_file: str, plink_path: str="./plink") -> None:
+    """
+    Converts a TPED file to PED format using PLINK.
+
+    Args:
+        tped_file (str): The path to the TPED file (without extension).
+        plink_path (str): The path to the PLINK executable.
+        output_file (str): The desired output PED file path (without extension).
+    """
+
+    convert_command = [
+        plink_path,
+        "--tfile", tped_file,
+        "--recode",
+        "--out", tped_file
+    ]
+
+    try:
+        # Execute the PLINK command
+        result = subprocess.run(convert_command, check=True, text=True, capture_output=True)
+        print("PLINK output:")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("Error running PLINK:")
+        print(e.stderr)
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        raise
+
+def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
         window_snp: int = 50, window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
         homozyg_gap: int = 1000, homozyg_het: int = 1000, homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000
     ) -> None:
@@ -54,6 +118,72 @@ def plink_roh(
         "--homozyg-density", str(homozyg_density),
         "--homozyg-snp", str(homozyg_snp),
         "--homozyg-kb", str(homozyg_kb),
+        "--out", output_folder
+    ]
+
+    try:
+        # Execute the PLINK command
+        result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
+        print("PLINK output:")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("Error running PLINK:")
+        print(e.stderr)
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        raise
+
+def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, plink_path: str ="./plink") -> None:
+    """
+    Sends the target individual and potential parents' files to PLINK for parentage analysis.
+
+    Args:
+        offspring_file (str): The path to the file containing the offspring's genotypes.
+        parent1_file (str): The path to the file containing the first parent's genotypes.
+        parent2_file (str): The path to the file containing the second parent's genotypes.
+        plink_path (str): The path to the PLINK executable (default: "./plink").
+    """
+
+    if not os.path.exists(offspring_file + ".tped"):
+        raise FileNotFoundError(f"Offspring file '{offspring_file}' does not exist.")
+    if not os.path.exists(parent1_file + ".tped"):
+        raise FileNotFoundError(f"Parent 1 file '{parent1_file}' does not exist.")
+    if not os.path.exists(parent2_file + ".tped"):
+        raise FileNotFoundError(f"Parent 2 file '{parent2_file}' does not exist.")
+
+    # Converts tped files to ped files
+    _plink_convert_tped_to_ped(
+        tped_file=offspring_file,
+        plink_path=plink_path
+    )
+    _plink_convert_tped_to_ped(
+        tped_file=parent1_file,
+        plink_path=plink_path
+    )
+    _plink_convert_tped_to_ped(
+        tped_file=parent2_file,
+        plink_path=plink_path
+    )
+
+    # Merges parents' ped files with offspring ped file
+    merged_ped_file = _plink_merge_ped_files(
+        ped_file_main=offspring_file,
+        ped_file_to_merge=parent1_file,
+        plink_path=plink_path
+    )
+    _plink_merge_ped_files(
+        ped_file_main=merged_ped_file,
+        ped_file_to_merge=parent2_file,
+        plink_path=plink_path
+    )
+
+    # Construct the PLINK command
+    roh_command = [
+        plink_path,
+        "--file", merged_ped_file,
+        "--dog",
+        "--homozyg",
         "--out", output_folder
     ]
 
