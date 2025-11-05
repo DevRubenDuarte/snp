@@ -1,28 +1,33 @@
-from db_connection import add_to_tbl_loci, add_to_tbl_alleles
+from db_connection import add_to_tbl_loci, add_to_tbl_alleles, process_zip
+from plink_intregration import plink_roh, plink_parentage
 from zip_file_handler import unzip_file
-from plink_intregration import plink_roh
 
 import pandas as pd
 import os
 
 def main() -> None:
-    # process_zip("uploads/289_223766.zip")
-    plink_roh(input_file="uploads/289_223766_unzipped/31220610301956", output_folder="roh/31220610301956", plink_path="/home/artos/dogs_global/database/plink/plink")
-
-def process_zip(file_path: str) -> None:
-    # Unzip the file
-    path, contents = unzip_file(file_path)
-
-    # Load the TPED file
-    file_name = next((name for name in contents.keys() if name.endswith(".tped")), None)
-    if file_name is None:
-        raise FileNotFoundError("No .tped file found in the zip archive.")
-    tped_file_path = os.path.join(path, file_name)
-    tped_file = pd.read_csv(tped_file_path, sep=" ", header=None)
-
     # Create tables
-    add_to_tbl_loci(tped_file)
+    # add_to_tbl_loci(process_zip("uploads/289_223766.zip"))
     # add_to_tbl_alleles(tped_file, dog=int(1), source=1)
+
+    # Run Runs of Homozygosity (ROH) analysis
+    # plink_roh(input_file="uploads/289_223766_unzipped/31220610301956", output_folder="roh/31220610301956", plink_path="/home/artos/dogs_global/database/plink/plink")
+
+    # Run Parentage analysis
+    offspring_folder, offspring_contents = unzip_file("uploads/289_105581.zip")
+    offspring_path = offspring_folder + "/" + list(offspring_contents.keys())[0].rsplit(".", 1)[0]
+    parent1_folder, parent1_contents = unzip_file("uploads/289_208989.zip")
+    parent1_path = parent1_folder + "/" + list(parent1_contents.keys())[0].rsplit(".", 1)[0]
+    parent2_folder, parent2_contents = unzip_file("uploads/289_235631.zip")
+    parent2_path = parent2_folder + "/" + list(parent2_contents.keys())[0].rsplit(".", 1)[0]
+
+    plink_parentage(
+        offspring_file=offspring_path,
+        parent1_file=parent1_path,
+        parent2_file=parent2_path,
+        plink_path="/home/artos/dogs_global/database/plink/plink"
+    )
+
 
 if __name__ == "__main__":
     main()

@@ -1,25 +1,30 @@
 import subprocess
 import os
 
-def _plink_merge_ped_files(ped_file_main: str, ped_file_to_merge: str, plink_path: str ="./plink") -> str:
+def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str, plink_path: str ="./plink") -> str:
     """
-    Merges two PED files using PLINK.
+    Merges two bim files using PLINK.
 
     Args:
-        ped_file_main (str): The path to the main PED file (without extension).
-        ped_file_to_merge (str): The path to the file to merge (without extension).
+        bim_file_main (str): The path to the main BIM file (without extension).
+        bim_file_to_merge (str): The path to the file to merge (without extension).
         plink_path (str): The path to the PLINK executable (default: "./plink").
 
     Returns:
-        str: The path to the merged PED file (without extension).
+        str: The path to the merged BIM file (without extension).
     """
 
-    output_ped_file = "merged_parentage" + ped_file_main
+    bim_list = bim_file_main + "_list_to_merge.txt"
+    with open(bim_list, 'w') as f:
+        for bim_file in bim_files_to_merge:
+            f.write(f"{bim_file}\n")
+
     merge_command = [
         plink_path,
-        "--file", ped_file_main,
-        "--merge", ped_file_to_merge,
-        "--out", output_ped_file
+        "--dog",
+        "--bfile", bim_file_main,
+        "--merge-list", bim_list,
+        "--out", output_bim_file
     ]
 
     try:
@@ -34,22 +39,23 @@ def _plink_merge_ped_files(ped_file_main: str, ped_file_to_merge: str, plink_pat
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
-    return output_ped_file
+    return output_bim_file
 
-def _plink_convert_tped_to_ped(tped_file: str, plink_path: str="./plink") -> None:
+def _plink_convert_tped_to_bim(tped_file: str, plink_path: str="./plink") -> None:
     """
-    Converts a TPED file to PED format using PLINK.
+    Converts a TPED file to bim format using PLINK.
 
     Args:
         tped_file (str): The path to the TPED file (without extension).
         plink_path (str): The path to the PLINK executable.
-        output_file (str): The desired output PED file path (without extension).
+        output_file (str): The desired output BIM file path (without extension).
     """
 
     convert_command = [
         plink_path,
+        "--dog",
         "--tfile", tped_file,
-        "--recode",
+        "--make-bed",
         "--out", tped_file
     ]
 
@@ -152,53 +158,50 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, p
     if not os.path.exists(parent2_file + ".tped"):
         raise FileNotFoundError(f"Parent 2 file '{parent2_file}' does not exist.")
 
-    # Converts tped files to ped files
-    _plink_convert_tped_to_ped(
+    # Converts tped files to bim files
+    _plink_convert_tped_to_bim(
         tped_file=offspring_file,
         plink_path=plink_path
     )
-    _plink_convert_tped_to_ped(
+    _plink_convert_tped_to_bim(
         tped_file=parent1_file,
         plink_path=plink_path
     )
-    _plink_convert_tped_to_ped(
+    _plink_convert_tped_to_bim(
         tped_file=parent2_file,
         plink_path=plink_path
     )
 
-    # Merges parents' ped files with offspring ped file
-    merged_ped_file = _plink_merge_ped_files(
-        ped_file_main=offspring_file,
-        ped_file_to_merge=parent1_file,
-        plink_path=plink_path
-    )
-    _plink_merge_ped_files(
-        ped_file_main=merged_ped_file,
-        ped_file_to_merge=parent2_file,
-        plink_path=plink_path
+    # Merges parents' bim files with offspring bim file
+    output_bim_file = os.path.splitext(offspring_file)[0] + "_merged"
+
+    _plink_merge_bim_files(
+        bim_file_main=offspring_file,
+        bim_files_to_merge=[parent1_file, parent2_file],
+        plink_path=plink_path,
+        output_bim_file=output_bim_file
     )
 
-    # Construct the PLINK command
-    roh_command = [
-        plink_path,
-        "--file", merged_ped_file,
-        "--dog",
-        "--homozyg",
-        "--out", output_folder
-    ]
+    # # Construct the PLINK command
+    # roh_command = [
+    #     plink_path,
+    #     "--dog",
+    #     "--file", offspring_file + "_merged",
+    #     "--genome"
+    # ]
 
-    try:
-        # Execute the PLINK command
-        result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-        print("PLINK output:")
-        print(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("Error running PLINK:")
-        print(e.stderr)
-        raise
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        raise
+    # try:
+    #     # Execute the PLINK command
+    #     result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
+    #     print("PLINK output:")
+    #     print(result.stdout)
+    # except subprocess.CalledProcessError as e:
+    #     print("Error running PLINK:")
+    #     print(e.stderr)
+    #     raise
+    # except Exception as e:
+    #     print(f"An unexpected error occurred: {e}")
+    #     raise
 
 if __name__ == "__main__":
     # Example usage

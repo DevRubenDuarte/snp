@@ -1,5 +1,6 @@
 import os, logging
 from typing import Optional
+from zip_file_handler import unzip_file
 
 import psycopg
 import dotenv
@@ -26,6 +27,17 @@ def _map_bases(df: pd.DataFrame) -> None:
         "0": "0"
     }
     df.replace({"firstAllele": mapping, "secondAllele": mapping}, inplace=True)
+
+def process_zip(file_path: str) -> pd.DataFrame:
+    # Unzip the file
+    path, contents = unzip_file(file_path)
+
+    # Load the TPED file
+    file_name = next((name for name in contents.keys() if name.endswith(".tped")), None)
+    if file_name is None:
+        raise FileNotFoundError("No .tped file found in the zip archive.")
+    tped_file_path = os.path.join(path, file_name)
+    return pd.read_csv(tped_file_path, sep=" ", header=None)
 
 def get_connection() -> psycopg.Connection:
     """
