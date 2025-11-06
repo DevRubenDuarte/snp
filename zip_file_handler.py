@@ -13,7 +13,7 @@ def unzip_file(file_path: str, output_folder: str = "uploads") -> tuple[str, dic
     """
 
     zip_name = os.path.splitext(os.path.basename(file_path))[0]
-    target_folder = os.path.join(output_folder, zip_name+"_unzipped")
+    target_folder = os.path.join(output_folder, zip_name)
     os.makedirs(target_folder, exist_ok=True)  # Ensure the subfolder exists
     contents = {}
     with zipfile.ZipFile(file_path, 'r') as zip_ref:

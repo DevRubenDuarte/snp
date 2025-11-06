@@ -1,7 +1,8 @@
 import subprocess
 import os
+from typing import Optional
 
-def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str, plink_path: str ="./plink") -> str:
+def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str, plink_path: str ="./plink") -> None:
     """
     Merges two bim files using PLINK.
 
@@ -39,9 +40,8 @@ def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
-    return output_bim_file
 
-def _plink_convert_tped_to_bim(tped_file: str, plink_path: str="./plink") -> None:
+def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str="./plink") -> None:
     """
     Converts a TPED file to bim format using PLINK.
 
@@ -56,7 +56,7 @@ def _plink_convert_tped_to_bim(tped_file: str, plink_path: str="./plink") -> Non
         "--dog",
         "--tfile", tped_file,
         "--make-bed",
-        "--out", tped_file
+        "--out", output_file
     ]
 
     try:
@@ -71,6 +71,28 @@ def _plink_convert_tped_to_bim(tped_file: str, plink_path: str="./plink") -> Non
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
+
+def _plink_convert_and_merge_tped_files(tped_file_main: str, tped_files_to_merge: list, output_bim_file: str, plink_path: str ="./plink") -> None:
+    # Converts tped files to bim files
+    _plink_convert_tped_to_bim(
+        tped_file=tped_file_main,
+        output_file=tped_file_main,
+        plink_path=plink_path
+    )
+    for tped_file in tped_files_to_merge:
+        _plink_convert_tped_to_bim(
+            tped_file=tped_file,
+            output_file=tped_file,
+            plink_path=plink_path
+        )
+
+    # Merges parents' bim files with offspring bim file
+    _plink_merge_bim_files(
+        bim_file_main=tped_file_main,
+        bim_files_to_merge=tped_files_to_merge,
+        plink_path=plink_path,
+        output_bim_file=output_bim_file
+    )
 
 def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
         window_snp: int = 50, window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
@@ -140,7 +162,7 @@ def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, plink_path: str ="./plink") -> None:
+def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, merged_bim_file: Optional[str] = None, plink_path: str ="./plink") -> None:
     """
     Sends the target individual and potential parents' files to PLINK for parentage analysis.
 
@@ -148,8 +170,12 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, p
         offspring_file (str): The path to the file containing the offspring's genotypes.
         parent1_file (str): The path to the file containing the first parent's genotypes.
         parent2_file (str): The path to the file containing the second parent's genotypes.
+        output_bim_file (str): The desired output BIM file path (without extension). If None, defaults to offspring_file + "_merged".
         plink_path (str): The path to the PLINK executable (default: "./plink").
     """
+
+    if merged_bim_file is None:
+        merged_bim_file = offspring_file + "_merged"
 
     if not os.path.exists(offspring_file + ".tped"):
         raise FileNotFoundError(f"Offspring file '{offspring_file}' does not exist.")
@@ -158,58 +184,33 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, p
     if not os.path.exists(parent2_file + ".tped"):
         raise FileNotFoundError(f"Parent 2 file '{parent2_file}' does not exist.")
 
-    # Converts tped files to bim files
-    _plink_convert_tped_to_bim(
-        tped_file=offspring_file,
-        plink_path=plink_path
-    )
-    _plink_convert_tped_to_bim(
-        tped_file=parent1_file,
-        plink_path=plink_path
-    )
-    _plink_convert_tped_to_bim(
-        tped_file=parent2_file,
+
+    _plink_convert_and_merge_tped_files(
+        tped_file_main=offspring_file,
+        tped_files_to_merge=[parent1_file, parent2_file],
+        output_bim_file=merged_bim_file,
         plink_path=plink_path
     )
 
-    # Merges parents' bim files with offspring bim file
-    output_bim_file = os.path.splitext(offspring_file)[0] + "_merged"
-
-    _plink_merge_bim_files(
-        bim_file_main=offspring_file,
-        bim_files_to_merge=[parent1_file, parent2_file],
-        plink_path=plink_path,
-        output_bim_file=output_bim_file
-    )
-
-    # # Construct the PLINK command
-    # roh_command = [
-    #     plink_path,
-    #     "--dog",
-    #     "--file", offspring_file + "_merged",
-    #     "--genome"
-    # ]
-
-    # try:
-    #     # Execute the PLINK command
-    #     result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-    #     print("PLINK output:")
-    #     print(result.stdout)
-    # except subprocess.CalledProcessError as e:
-    #     print("Error running PLINK:")
-    #     print(e.stderr)
-    #     raise
-    # except Exception as e:
-    #     print(f"An unexpected error occurred: {e}")
-    #     raise
-
-if __name__ == "__main__":
-    # Example usage
-    input_file = "/path/to/input_file"  # Replace with your input file path
-    output_folder = "/path/to/output_prefix"  # Replace with your desired output prefix
-    plink_path = "plink"  # Adjust if PLINK is not in your PATH
+    # Construct the PLINK command
+    roh_command = [
+        plink_path,
+        "--dog",
+        "--bfile", merged_bim_file,
+        "--genome",
+        "--out", "ibd/" + os.path.basename(offspring_file)
+    ]
 
     try:
-        plink_roh(input_file, output_folder, plink_path)
+        # Execute the PLINK command
+        result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
+        print("PLINK output:")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("Error running PLINK:")
+        print(e.stderr)
+        raise
     except Exception as e:
-        print(f"Failed to send file to PLINK: {e}")
+        print(f"An unexpected error occurred: {e}")
+        raise
+
