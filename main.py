@@ -25,6 +25,7 @@ def main() -> None:
         offspring_file=offspring_path,
         parent1_file=parent1_path,
         parent2_file=parent2_path,
+        genome_file="ibd/" + os.path.basename(offspring_path),
         plink_path="/home/artos/dogs_global/database/plink/plink"
     )
 
