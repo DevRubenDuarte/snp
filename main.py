@@ -1,5 +1,5 @@
 from db_connection import add_to_tbl_loci, add_to_tbl_alleles, process_zip
-from plink_intregration import plink_roh, plink_parentage
+from plink_integration import plink_roh, plink_parentage
 from zip_file_handler import unzip_file
 
 import pandas as pd
