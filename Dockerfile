@@ -1,26 +1,27 @@
 # Build
-FROM python:3.14-alpine
+FROM python:3.14-slim
 
 # Set the working directory
 WORKDIR /app
+
+# Install system dependencies required for psycopg and other libraries
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    build-essential \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Import dependencies from requirements.txt
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-# Install system dependencies required for psycopg and other libraries
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    postgresql-dev \
-    libpq \
-    python3-dev \
-    build-base
-
 # Copy the rest of the files
 COPY main.py db_connection.py plink_integration.py zip_file_handler.py /app/
 COPY ibd/ /app/ibd/
 COPY roh/ /app/roh/
-COPY uploads/ /app/uploads/
+COPY plink/ /app/plink/
+# COPY uploads/ /app/uploads/
 
+# Run the application
 CMD ["python", "./main.py"]

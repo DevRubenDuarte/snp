@@ -1,8 +1,6 @@
-from db_connection import add_to_tbl_loci, add_to_tbl_alleles, process_zip
 from plink_integration import plink_roh, plink_parentage
 from zip_file_handler import unzip_file
 
-import pandas as pd
 import os
 
 def main() -> None:
@@ -25,8 +23,7 @@ def main() -> None:
         offspring_file=offspring_path,
         parent1_file=parent1_path,
         parent2_file=parent2_path,
-        genome_file="ibd/" + os.path.basename(offspring_path),
-        plink_path="/home/artos/dogs_global/database/plink/plink"
+        genome_file="ibd/" + os.path.basename(offspring_path)
     )
 
 

@@ -1,10 +1,11 @@
 import subprocess
 import os
-from typing import Optional
 
-import pandas as pd
+import polars as pl
 
-def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str, plink_path: str ="./plink") -> None:
+def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str,
+    plink_path: str ="./plink") -> None:
+
     """
     Merges two bim files using PLINK.
 
@@ -187,7 +188,7 @@ def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, genome_file: str, plink_path: str ="./plink") -> None:
+def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, genome_file: str, plink_path: str ="plink/plink") -> None:
     """
     Sends the target individual and potential parents' files to PLINK for parentage analysis.
 
@@ -196,7 +197,7 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, g
         parent1_file (str): The path to the file containing the first parent's genotypes.
         parent2_file (str): The path to the file containing the second parent's genotypes.
         output_bim_file (str): The desired output BIM file path (without extension). If None, defaults to offspring_file + "_merged".
-        plink_path (str): The path to the PLINK executable (default: "./plink").
+        plink_path (str): The path to the PLINK executable (default: "plink/plink").
     """
 
     if not os.path.exists(offspring_file + ".tped"):
@@ -214,7 +215,7 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, g
         plink_path=plink_path
     )
 
-    genome = pd.read_csv(genome_file + ".genome", delim_whitespace=True)
+    genome = pl.read_csv(genome_file + ".genome", separator="\t")
 
 
 
