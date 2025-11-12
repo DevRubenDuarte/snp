@@ -4,7 +4,7 @@ import os
 import polars as pl
 
 def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str,
-    plink_path: str ="./plink") -> None:
+                            plink_path: str ="plink/plink") -> None:
 
     """
     Merges two bim files using PLINK.
@@ -12,7 +12,7 @@ def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_
     Args:
         bim_file_main (str): The path to the main BIM file (without extension).
         bim_file_to_merge (str): The path to the file to merge (without extension).
-        plink_path (str): The path to the PLINK executable (default: "./plink").
+        plink_path (str): The path to the PLINK executable (default: "plink/plink").
 
     Returns:
         str: The path to the merged BIM file (without extension).
@@ -44,7 +44,7 @@ def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_
         print(f"An unexpected error occurred: {e}")
         raise
 
-def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str="./plink") -> None:
+def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str="plink/plink") -> None:
     """
     Converts a TPED file to bim format using PLINK.
 
@@ -75,7 +75,11 @@ def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str
         print(f"An unexpected error occurred: {e}")
         raise
 
-def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, output_genome_file: str, plink_path: str ="./plink") -> None:
+def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, output_genome_file: str ="",
+                                plink_path: str ="plink/plink") -> None:
+    if output_genome_file == "":
+        output_genome_file = "ibd/" + os.path.basename(tped_file_main)
+
     merged_bim_file = tped_file_main + "_merged"
     # Converts tped files to bim files
     _plink_convert_tped_to_bim(
@@ -104,7 +108,7 @@ def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, o
         "--dog",
         "--bfile", merged_bim_file,
         "--genome",
-        "--out", "ibd/" + os.path.basename(tped_file_main)
+        "--out", 
     ]
 
     try:
@@ -120,10 +124,10 @@ def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, o
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
-        window_snp: int = 50, window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
-        homozyg_gap: int = 1000, homozyg_het: int = 1000, homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000
-    ) -> None:
+def plink_roh(input_file: str, output_folder: str ="roh/", plink_path: str ="plink/plink", window_snp: int = 50,
+                window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
+                homozyg_gap: int = 1000, homozyg_het: int = 1000, homozyg_density: int = 50,
+                homozyg_snp: int = 100, homozyg_kb: int = 1000) -> None:
 
     """
     Sends a file to PLINK for Run of Homozygosity (RoH) analysis.
@@ -188,7 +192,8 @@ def plink_roh(input_file: str, output_folder: str, plink_path: str ="./plink",
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, genome_file: str, plink_path: str ="plink/plink") -> None:
+def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, genome_file: str,
+                    plink_path: str ="plink/plink") -> None:
     """
     Sends the target individual and potential parents' files to PLINK for parentage analysis.
 
