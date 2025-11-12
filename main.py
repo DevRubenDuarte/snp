@@ -1,17 +1,11 @@
-from db_connection import add_to_tbl_loci, add_to_tbl_alleles
+from plink_integration import plink_roh, plink_parentage
 from zip_file_handler import unzip_file
 
-import pandas as pd
-from fastapi import FastAPI, UploadFile, HTTPException
-from pathlib import Path
-import shutil
-import uvicorn
+import os
 
-# def main():
-    # # Load the TPED file
-    # tped_file = pd.read_csv("database/barbel_ex/test.tped", sep=" ", header=None)
-    # # Create tables
-    # add_to_tbl_loci(tped_file)
+def main() -> None:
+    # Create tables
+    # add_to_tbl_loci(process_zip("uploads/289_223766.zip"))
     # add_to_tbl_alleles(tped_file, dog=int(1), source=1)
 
 def test(tped: pd.DataFrame):

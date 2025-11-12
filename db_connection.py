@@ -1,10 +1,11 @@
 import os
 import logging
 from typing import Optional
+from zip_file_handler import unzip_file
 
 import psycopg
 import dotenv
-import pandas as pd
+import polars as pl
 
 dotenv.load_dotenv()
 
@@ -18,7 +19,11 @@ def _get_env(key: str, default: Optional[str] = None) -> str:
         raise RuntimeError(f"Missing required environment variable: {key}")
     return value
 
-def _map_bases(df: pd.DataFrame) -> None:
+def _map_bases(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Map DNA bases to numeric values: A=1, C=2, G=3, T=4, 0=0
+    """
+
     mapping = {
         "A": "1",
         "C": "2",
@@ -26,7 +31,22 @@ def _map_bases(df: pd.DataFrame) -> None:
         "T": "4",
         "0": "0"
     }
-    df.replace({"firstAllele": mapping, "secondAllele": mapping}, inplace=True)
+    # Replace values in firstAllele and secondAllele columns and return new DataFrame
+    return df.with_columns([
+        pl.col("firstAllele").replace(mapping).cast(pl.Int8),
+        pl.col("secondAllele").replace(mapping).cast(pl.Int8)
+    ])
+
+def process_zip(file_path: str) -> pl.DataFrame:
+    # Unzip the file
+    path, contents = unzip_file(file_path)
+
+    # Load the TPED file
+    file_name = next((name for name in contents.keys() if name.endswith(".tped")), None)
+    if file_name is None:
+        raise FileNotFoundError("No .tped file found in the zip archive.")
+    tped_file_path = os.path.join(path, file_name)
+    return pl.read_csv(tped_file_path, separator="\t", has_header=False)
 
 def get_connection() -> psycopg.Connection:
     """
@@ -51,29 +71,36 @@ def get_connection() -> psycopg.Connection:
     )
     return conn
 
-def add_to_tbl_loci(tped: pd.DataFrame) -> None:
+def add_to_tbl_loci(tped: pl.DataFrame) -> None:
     """
     Takes a tped dataframe and adds its loci to tbl_loci.
 
     Args:
-        tped (pd.DataFrame): DataFrame representing the tped file.
+        tped (pl.DataFrame): DataFrame representing the tped file.
     """
 
     # Create loci DataFrame
-    loci = pd.DataFrame(
-        columns=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
+    loci = pl.DataFrame(
+        schema=["indexID","chromossome","locusID","distance","embark8","VHL","embark9","myDogDNA"]
     )
+
     # Create indexID as multiples of 8
-    tped[6] = (tped.index + 1) * 8
+    # tped[6] = (tped.index + 1) * 8
+    tped = tped.with_columns(
+        (pl.arange(1, tped.height + 1) * 8).alias("indexID")
+    )
 
     # Assign values to loci DataFrame from tped file
-    loci = loci.assign(
-                indexID = tped[6],
-                chromossome = tped[0],
-                locusID = tped[1],
-                distance = tped[3],
-                embark8 = True
-            )
+    loci = tped.select([
+        pl.col("indexID"),
+        pl.col("chromossome"),
+        pl.col("locusID"),
+        pl.col("distance"),
+        pl.lit(True).alias("embark8"),
+        pl.lit(None).alias("VHL"),
+        pl.lit(None).alias("embark9"),
+        pl.lit(None).alias("myDogDNA")
+    ])
 
     # add tbl_loci
     logger = _get_logger()
@@ -86,11 +113,9 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
             with conn.cursor() as cur:
                 for start in range(0, total_rows, batch_size):
                     end = min(start + batch_size, total_rows)
-                    batch = loci.iloc[start:end]
-                    values = [
-                        (row['indexID'], row['chromossome'], row['locusID'], row['distance'], row['embark8'], None, None, None)
-                        for _, row in batch.iterrows()
-                    ]
+                    batch = loci.slice(start, end - start)
+                    values = batch.rows()
+
                     cur.executemany(
                         '''
                         INSERT INTO "public"."tbl_loci" (
@@ -103,38 +128,36 @@ def add_to_tbl_loci(tped: pd.DataFrame) -> None:
     except Exception as e:
         logger.error(f"Error inserting into tbl_loci: {e}")
         raise
+
     logger.info("Loci added successfully.")
 
-def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
+def add_to_tbl_alleles(tped: pl.DataFrame, dog: int, source: int) -> None:
     """
     Takes a tped dataframe and adds its alleles to tbl_alleles.
 
     Args:
-        tped (pd.DataFrame): DataFrame representing the tped file.
+        tped (pl.DataFrame): DataFrame representing the tped file.
         dog (int): Dog ID.
         source (int): Source ID.
     """
 
-    # Create alleles DataFrame
-    alleles = pd.DataFrame(
-        columns=["locusID","firstAllele","secondAllele","isHomozygous","sourceID", "dogID"]
-    )
-    # Assign values to alleles DataFrame from tped file
-    alleles = alleles.assign(
-                locusID = tped[1],
-                firstAllele = tped[4],
-                secondAllele = tped[5],
-                isHomozygous = tped[4] == tped[5],
-                sourceID = source,
-                dogID = dog
-            )
-    # Map bases (a=1, c=2, g=3, t=4, 0=0)
-    _map_bases(alleles)
+    # Create alleles DataFrame with Polars
+    alleles = tped.select([
+        pl.col("locusID"),
+        pl.col("firstAllele"),
+        pl.col("secondAllele"),
+        (pl.col("firstAllele") == pl.col("secondAllele")).alias("isHomozygous"),
+        pl.lit(source).alias("sourceID"),
+        pl.lit(dog).alias("dogID")
+    ])
 
-    # add tbl_alleles
+    # Map bases (A=1, C=2, G=3, T=4, 0=0)
+    alleles = _map_bases(alleles)
+
+    # Add tbl_alleles
     logger = _get_logger()
     batch_size = 10000
-    total_rows = len(alleles)
+    total_rows = alleles.height
     logger.info(f"Starting to insert {total_rows} rows into tbl_alleles in batches of {batch_size}...")
 
     try:
@@ -142,11 +165,11 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
             with conn.cursor() as cur:
                 for start in range(0, total_rows, batch_size):
                     end = min(start + batch_size, total_rows)
-                    batch = alleles.iloc[start:end]
-                    values = [
-                        (row['dogID'], row['locusID'], row['firstAllele'], row['secondAllele'], row['isHomozygous'], row['sourceID'])
-                        for _, row in batch.iterrows()
-                    ]
+                    # Use slice instead of iloc
+                    batch = alleles.slice(start, end - start)
+                    # Use rows() instead of iterrows()
+                    values = batch.rows()
+
                     cur.executemany(
                         '''
                         INSERT INTO "public"."tbl_alleles" (
@@ -159,4 +182,5 @@ def add_to_tbl_alleles(tped: pd.DataFrame, dog: int, source: int) -> None:
     except Exception as e:
         logger.error(f"Error inserting into tbl_alleles: {e}")
         raise
+
     logger.info("Alleles added successfully.")
