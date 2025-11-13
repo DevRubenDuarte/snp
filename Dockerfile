@@ -21,7 +21,10 @@ COPY main.py db_connection.py plink_integration.py zip_file_handler.py /app/
 COPY ibd/ /app/ibd/
 COPY roh/ /app/roh/
 COPY plink/ /app/plink/
-# COPY uploads/ /app/uploads/
+
+RUN mkdir -p /app/uploads
+
+EXPOSE 8000
 
 # Run the application
-CMD ["python", "./main.py"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

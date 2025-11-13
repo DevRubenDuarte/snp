@@ -1,10 +1,11 @@
 import subprocess
 import os
+from pathlib import Path
 
 import polars as pl
 
-def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_bim_file: str,
-                            plink_path: str ="plink/plink") -> None:
+def _plink_merge_bim_files(bim_file_main: Path, bim_files_to_merge: list[Path], output_bim_file: Path,
+                            plink_path: Path =Path("plink/plink")) -> None:
 
     """
     Merges two bim files using PLINK.
@@ -18,7 +19,7 @@ def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_
         str: The path to the merged BIM file (without extension).
     """
 
-    bim_list = bim_file_main + "_list_to_merge.txt"
+    bim_list = os.path.join(bim_file_main, "_list_to_merge.txt")
     with open(bim_list, 'w') as f:
         for bim_file in bim_files_to_merge:
             f.write(f"{bim_file}\n")
@@ -34,17 +35,15 @@ def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list, output_
     try:
         # Execute the PLINK command
         result = subprocess.run(merge_command, check=True, text=True, capture_output=True)
-        print("PLINK output:")
-        print(result.stdout)
+        print("PLINK output:", result.stdout)
     except subprocess.CalledProcessError as e:
-        print("Error running PLINK:")
-        print(e.stderr)
+        print("Error running PLINK:", e.stderr)
         raise
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
 
-def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str="plink/plink") -> None:
+def _plink_convert_tped_to_bim(tped_file: Path, output_file: Path, plink_path: Path=Path("plink/plink")) -> None:
     """
     Converts a TPED file to bim format using PLINK.
 
@@ -65,22 +64,21 @@ def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str
     try:
         # Execute the PLINK command
         result = subprocess.run(convert_command, check=True, text=True, capture_output=True)
-        print("PLINK output:")
-        print(result.stdout)
+        print("PLINK output:", result.stdout)
     except subprocess.CalledProcessError as e:
-        print("Error running PLINK:")
-        print(e.stderr)
+        print("Error running PLINK:", e.stderr)
         raise
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
 
-def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, output_genome_file: str ="",
-                                plink_path: str ="plink/plink") -> None:
+def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[Path],
+                            output_genome_file: Path =Path(""), plink_path: Path =Path("plink/plink")) -> None:
     if output_genome_file == "":
-        output_genome_file = "ibd/" + os.path.basename(tped_file_main)
+        output_genome_file = Path("ibd/" + os.path.basename(tped_file_main))
 
-    merged_bim_file = tped_file_main + "_merged"
+    merged_bim_file = Path(os.path.join(tped_file_main, "_merged"))
+
     # Converts tped files to bim files
     _plink_convert_tped_to_bim(
         tped_file=tped_file_main,
@@ -108,26 +106,24 @@ def _plink_produce_genome_file(tped_file_main: str, tped_files_to_merge: list, o
         "--dog",
         "--bfile", merged_bim_file,
         "--genome",
-        "--out", 
+        "--out", output_genome_file
     ]
 
     try:
         # Execute the PLINK command
         result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-        print("PLINK output:")
-        print(result.stdout)
+        print("PLINK output:", result.stdout)
     except subprocess.CalledProcessError as e:
-        print("Error running PLINK:")
-        print(e.stderr)
+        print("Error running PLINK:", e.stderr)
         raise
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_roh(input_file: str, output_folder: str ="roh/", plink_path: str ="plink/plink", window_snp: int = 50,
-                window_het: int = 1, window_missing: int = 5, window_threshold: float = 0.05,
-                homozyg_gap: int = 1000, homozyg_het: int = 1000, homozyg_density: int = 50,
-                homozyg_snp: int = 100, homozyg_kb: int = 1000) -> None:
+def plink_roh(input_file: Path, output_folder: Path =Path("roh/"), plink_path: Path =Path("plink/plink"),
+                window_snp: int = 50, window_het: int = 1, window_missing: int = 5,
+                window_threshold: float = 0.05, homozyg_gap: int = 1000, homozyg_het: int = 1000,
+                homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000) -> None:
 
     """
     Sends a file to PLINK for Run of Homozygosity (RoH) analysis.
@@ -158,7 +154,7 @@ def plink_roh(input_file: str, output_folder: str ="roh/", plink_path: str ="pli
             .hom.summary    	            SNP-based runs-of-homozygosity report.
     """
 
-    if not os.path.exists(input_file + ".tped"):
+    if not os.path.exists(os.path.join(input_file, ".tped")):
         raise FileNotFoundError(f"Input file '{input_file}' does not exist.")
 
     # Construct the PLINK command
@@ -182,36 +178,33 @@ def plink_roh(input_file: str, output_folder: str ="roh/", plink_path: str ="pli
     try:
         # Execute the PLINK command
         result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-        print("PLINK output:")
-        print(result.stdout)
+        print("PLINK output:", result.stdout)
     except subprocess.CalledProcessError as e:
-        print("Error running PLINK:")
-        print(e.stderr)
+        print("Error running PLINK:", e.stderr)
         raise
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, genome_file: str,
-                    plink_path: str ="plink/plink") -> None:
+def plink_parentage(offspring_file: Path, parent1_file: Path, parent2_file: Path, genome_file: Path,
+                    plink_path: Path =Path("plink/plink")) -> None:
     """
     Sends the target individual and potential parents' files to PLINK for parentage analysis.
 
     Args:
-        offspring_file (str): The path to the file containing the offspring's genotypes.
-        parent1_file (str): The path to the file containing the first parent's genotypes.
-        parent2_file (str): The path to the file containing the second parent's genotypes.
-        output_bim_file (str): The desired output BIM file path (without extension). If None, defaults to offspring_file + "_merged".
-        plink_path (str): The path to the PLINK executable (default: "plink/plink").
+        offspring_file (Path): The path to the file containing the offspring's genotypes.
+        parent1_file (Path): The path to the file containing the first parent's genotypes.
+        parent2_file (Path): The path to the file containing the second parent's genotypes.
+        output_bim_file (Path): The desired output BIM file path (without extension). If None, defaults to offspring_file + "_merged".
+        plink_path (Path): The path to the PLINK executable (default: "plink/plink").
     """
 
-    if not os.path.exists(offspring_file + ".tped"):
+    if not os.path.exists(os.path.join(offspring_file, ".tped")):
         raise FileNotFoundError(f"Offspring file '{offspring_file}' does not exist.")
-    if not os.path.exists(parent1_file + ".tped"):
+    if not os.path.exists(os.path.join(parent1_file, ".tped")):
         raise FileNotFoundError(f"Parent 1 file '{parent1_file}' does not exist.")
-    if not os.path.exists(parent2_file + ".tped"):
+    if not os.path.exists(os.path.join(parent2_file, ".tped")):
         raise FileNotFoundError(f"Parent 2 file '{parent2_file}' does not exist.")
-
 
     _plink_produce_genome_file(
         tped_file_main=offspring_file,
@@ -220,7 +213,7 @@ def plink_parentage(offspring_file: str, parent1_file: str, parent2_file: str, g
         plink_path=plink_path
     )
 
-    genome = pl.read_csv(genome_file + ".genome", separator="\t")
+    genome = pl.read_csv(os.path.join(genome_file, ".genome"), separator="\t")
 
 
 

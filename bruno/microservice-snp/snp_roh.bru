@@ -1,0 +1,24 @@
+meta {
+  name: snp_roh
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/snp_roh?dog_id=1
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  dog_id: 1
+}
+
+body:multipart-form {
+  file: @file(/home/artos/dogs_global/database/snp/uploads/289_105581.zip)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
