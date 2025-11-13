@@ -120,7 +120,7 @@ def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[P
         print(f"An unexpected error occurred: {e}")
         raise
 
-def plink_roh(input_file: Path, output_folder: Path =Path("roh/"), plink_path: Path =Path("plink/plink"),
+def plink_roh(input_file: Path, output_folder: Path, plink_path: Path =Path("plink/plink"),
                 window_snp: int = 50, window_het: int = 1, window_missing: int = 5,
                 window_threshold: float = 0.05, homozyg_gap: int = 1000, homozyg_het: int = 1000,
                 homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000) -> None:
@@ -153,9 +153,6 @@ def plink_roh(input_file: Path, output_folder: Path =Path("roh/"), plink_path: P
             .hom.indiv		                Sample-based runs-of-homozygosity report.
             .hom.summary    	            SNP-based runs-of-homozygosity report.
     """
-
-    if not os.path.exists(os.path.join(input_file, ".tped")):
-        raise FileNotFoundError(f"Input file '{input_file}' does not exist.")
 
     # Construct the PLINK command
     roh_command = [
@@ -198,13 +195,6 @@ def plink_parentage(offspring_file: Path, parent1_file: Path, parent2_file: Path
         output_bim_file (Path): The desired output BIM file path (without extension). If None, defaults to offspring_file + "_merged".
         plink_path (Path): The path to the PLINK executable (default: "plink/plink").
     """
-
-    if not os.path.exists(os.path.join(offspring_file, ".tped")):
-        raise FileNotFoundError(f"Offspring file '{offspring_file}' does not exist.")
-    if not os.path.exists(os.path.join(parent1_file, ".tped")):
-        raise FileNotFoundError(f"Parent 1 file '{parent1_file}' does not exist.")
-    if not os.path.exists(os.path.join(parent2_file, ".tped")):
-        raise FileNotFoundError(f"Parent 2 file '{parent2_file}' does not exist.")
 
     _plink_produce_genome_file(
         tped_file_main=offspring_file,

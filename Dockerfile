@@ -18,8 +18,6 @@ RUN pip install -r requirements.txt
 
 # Copy the rest of the files
 COPY main.py db_connection.py plink_integration.py zip_file_handler.py /app/
-COPY ibd/ /app/ibd/
-COPY roh/ /app/roh/
 COPY plink/ /app/plink/
 
 RUN mkdir -p /app/uploads

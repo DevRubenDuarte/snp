@@ -1,0 +1,26 @@
+meta {
+  name: snp_parentage
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/snp_parentage?dog_id=2
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  dog_id: 2
+}
+
+body:multipart-form {
+  offspring_file: @file(/home/artos/dogs_global/database/snp/uploads/289_105581.zip)
+  parent1_file: @file(/home/artos/dogs_global/database/snp/uploads/289_208989.zip)
+  parent2_file: @file(/home/artos/dogs_global/database/snp/uploads/289_235631.zip)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
