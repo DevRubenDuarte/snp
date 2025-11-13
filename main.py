@@ -94,36 +94,49 @@ async def process_parentage(dog_id: int, offspring_file: UploadFile, parent1_fil
     offspring_file_path = UPLOAD_DIR / f"{dog_id}/{offspring_file.filename}"
     parent1_file_path = UPLOAD_DIR / f"{dog_id}/{parent1_file.filename}"
     parent2_file_path = UPLOAD_DIR / f"{dog_id}/{parent2_file.filename}"
-    output_genome_file = Path(f"ibd/{dog_id}")
+    output_genome_file = Path(f"ibd/{dog_id}/{dog_id}")
 
     try:
         # Create parent directory if it doesn't exist
         offspring_file_path.parent.mkdir(parents=True, exist_ok=True)
-        output_genome_file.mkdir(parents=True, exist_ok=True)
+        output_genome_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save files and unzip if necessary
+        # Save files and unzip
         if not offspring_file.filename or not parent1_file.filename or not parent2_file.filename:
             raise HTTPException(status_code=400, detail="One or more uploaded files are missing filenames")
+        _, offspring_contents = _save_file_and_unzip(offspring_file, offspring_file_path)
+        _, parent1_contents = _save_file_and_unzip(parent1_file, parent1_file_path)
+        _, parent2_contents = _save_file_and_unzip(parent2_file, parent2_file_path)
 
-        e_path_offspring, offspring_contents = _save_file_and_unzip(offspring_file, offspring_file_path)
-        e_path_parent1, parent1_contents = _save_file_and_unzip(parent1_file, parent1_file_path)
-        e_path_parent2, parent2_contents = _save_file_and_unzip(parent2_file, parent2_file_path)
-        extracted_path_offspring = e_path_offspring
-        extracted_path_parent1 = e_path_parent1
-        extracted_path_parent2 = e_path_parent2
+        path_offspring = Path()
+        path_parent1 = Path()
+        path_parent2 = Path()
 
-        matches = []
-        for f in os.listdir(extracted_path_offspring):
-            if f.endswith(".tped"):
-                matches.append(os.path.join(extracted_path_offspring, f))
-                break
+        # Find .tped files
+        for file in offspring_contents:
+            if file.endswith(".tped"):
+                path_offspring = UPLOAD_DIR / f"{dog_id}/{file}"
 
-        # Expects 3 files: offspring, parent1, parent2
-        if not len(matches) == 3:
-            raise HTTPException(status_code=400, detail=f"Expected 3 .tped files, found {len(matches)} files")
+        for file in parent1_contents:
+            if file.endswith(".tped"):
+                path_parent1 = UPLOAD_DIR / f"{dog_id}/{file}"
+
+        for file in parent2_contents:
+            if file.endswith(".tped"):
+                path_parent2 = UPLOAD_DIR / f"{dog_id}/{file}"
+
+        if not path_offspring or not path_parent1 or not path_parent2:
+            raise HTTPException(status_code=400, detail="No .tped file found in the uploaded content")
 
         # Call plink_parentage function
-        plink_parentage(extracted_path_offspring, extracted_path_parent1, extracted_path_parent2, output_genome_file)
+        plink_parentage(path_offspring, path_parent1, path_parent2, output_genome_file)
+
+        return {
+            "status": "success",
+            "message": "Parentage analysis completed successfully",
+            "dog_id": dog_id,
+            "output_folder": str(output_genome_file)
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

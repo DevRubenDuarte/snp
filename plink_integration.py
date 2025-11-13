@@ -4,8 +4,8 @@ from pathlib import Path
 
 import polars as pl
 
-def _plink_merge_bim_files(bim_file_main: Path, bim_files_to_merge: list[Path], output_bim_file: Path,
-                            plink_path: Path =Path("plink/plink")) -> None:
+def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list[str], output_bim_file: str,
+                            plink_path: str ="plink/plink") -> None:
 
     """
     Merges two bim files using PLINK.
@@ -19,7 +19,8 @@ def _plink_merge_bim_files(bim_file_main: Path, bim_files_to_merge: list[Path], 
         str: The path to the merged BIM file (without extension).
     """
 
-    bim_list = os.path.join(bim_file_main, "_list_to_merge.txt")
+    bim_list = bim_file_main + "_list_to_merge.txt"
+
     with open(bim_list, 'w') as f:
         for bim_file in bim_files_to_merge:
             f.write(f"{bim_file}\n")
@@ -43,7 +44,7 @@ def _plink_merge_bim_files(bim_file_main: Path, bim_files_to_merge: list[Path], 
         print(f"An unexpected error occurred: {e}")
         raise
 
-def _plink_convert_tped_to_bim(tped_file: Path, output_file: Path, plink_path: Path=Path("plink/plink")) -> None:
+def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str="plink/plink") -> None:
     """
     Converts a TPED file to bim format using PLINK.
 
@@ -77,36 +78,42 @@ def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[P
     if output_genome_file == "":
         output_genome_file = Path("ibd/" + os.path.basename(tped_file_main))
 
-    merged_bim_file = Path(os.path.join(tped_file_main, "_merged"))
-
+    tped_file_main_no_ext = os.path.splitext(tped_file_main)[0]
     # Converts tped files to bim files
     _plink_convert_tped_to_bim(
-        tped_file=tped_file_main,
-        output_file=tped_file_main,
-        plink_path=plink_path
+        tped_file=tped_file_main_no_ext,
+        output_file=tped_file_main_no_ext,
+        plink_path=str(plink_path)
     )
+
+    merge = []
     for tped_file in tped_files_to_merge:
+        file = os.path.splitext(tped_file)[0]
+        merge.append(file)
         _plink_convert_tped_to_bim(
-            tped_file=tped_file,
-            output_file=tped_file,
-            plink_path=plink_path
+            tped_file=file,
+            output_file=file,
+            plink_path=str(plink_path)
         )
+
+    merged_bim_file = tped_file_main_no_ext + "_merged"
 
     # Merges parents' bim files with offspring bim file
     _plink_merge_bim_files(
-        bim_file_main=tped_file_main,
-        bim_files_to_merge=tped_files_to_merge,
-        plink_path=plink_path,
+        bim_file_main=tped_file_main_no_ext,
+        bim_files_to_merge=merge,
+        plink_path=str(plink_path),
         output_bim_file=merged_bim_file
     )
 
+    print("Producing .genome file...", output_genome_file)
     # Produces .genome file
     roh_command = [
-        plink_path,
+        str(plink_path),
         "--dog",
-        "--bfile", merged_bim_file,
+        "--bfile", str(merged_bim_file),
         "--genome",
-        "--out", output_genome_file
+        "--out", str(output_genome_file)
     ]
 
     try:
@@ -202,8 +209,6 @@ def plink_parentage(offspring_file: Path, parent1_file: Path, parent2_file: Path
         output_genome_file=genome_file,
         plink_path=plink_path
     )
-
-    genome = pl.read_csv(os.path.join(genome_file, ".genome"), separator="\t")
 
 
 
