@@ -72,14 +72,15 @@ async def process_roh(dog_id: int, file: UploadFile):
         tped_file = Path(os.path.splitext(matches[0])[0])
 
         # Call plink_roh function
-        plink_roh(tped_file, results_file_path)
+        roh_results, roh_indiv_results = plink_roh(tped_file, results_file_path)
 
         # Return success response
         return {
             "status": "success",
             "message": "ROH analysis completed successfully",
             "dog_id": dog_id,
-            "output_folder": str(results_folder)
+            "roh_results": roh_results.write_json(),
+            "roh_indiv_results": roh_indiv_results.write_json()
         }
 
     except Exception as e:
@@ -129,13 +130,13 @@ async def process_parentage(dog_id: int, offspring_file: UploadFile, parent1_fil
             raise HTTPException(status_code=400, detail="No .tped file found in the uploaded content")
 
         # Call plink_parentage function
-        plink_parentage(path_offspring, path_parent1, path_parent2, output_genome_file)
+        genome_results = plink_parentage(path_offspring, path_parent1, path_parent2, output_genome_file)
 
         return {
             "status": "success",
             "message": "Parentage analysis completed successfully",
             "dog_id": dog_id,
-            "output_folder": str(output_genome_file)
+            "genome_results": genome_results.write_json()
         }
 
     except Exception as e:

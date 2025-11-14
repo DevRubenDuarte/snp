@@ -5,12 +5,7 @@ FROM python:3.14-slim
 WORKDIR /app
 
 # Install system dependencies required for psycopg and other libraries
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    python3-dev \
-    build-essential \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 
 # Import dependencies from requirements.txt
 COPY requirements.txt requirements.txt

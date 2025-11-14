@@ -1,4 +1,5 @@
 polars              # data analysis
+pandas              # data manipulation
 psycopg             # PostgreSQL database adapter
 dotenv              # load environment variables from .env file
 fastapi             # web framework

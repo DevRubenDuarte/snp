@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import polars as pl
+import pandas as pd
 
 def _plink_merge_bim_files(bim_file_main: str, bim_files_to_merge: list[str], output_bim_file: str,
                             plink_path: str ="plink/plink") -> None:
@@ -74,7 +75,8 @@ def _plink_convert_tped_to_bim(tped_file: str, output_file: str, plink_path: str
         raise
 
 def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[Path],
-                            output_genome_file: Path =Path(""), plink_path: Path =Path("plink/plink")) -> None:
+                            output_genome_file: Path =Path(""), plink_path: Path =Path("plink/plink")
+                            )-> pl.DataFrame:
     if output_genome_file == "":
         output_genome_file = Path("ibd/" + os.path.basename(tped_file_main))
 
@@ -119,7 +121,12 @@ def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[P
     try:
         # Execute the PLINK command
         result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-        print("PLINK output:", result.stdout)
+
+        # Digest results
+        genome_df = pd.read_csv(f"{output_genome_file}.genome", sep="\\s+")
+        # Must cast from pandas to polars, the latter doesn't accept plink files
+        return pl.from_pandas(genome_df)
+
     except subprocess.CalledProcessError as e:
         print("Error running PLINK:", e.stderr)
         raise
@@ -130,7 +137,7 @@ def _plink_produce_genome_file(tped_file_main: Path, tped_files_to_merge: list[P
 def plink_roh(input_file: Path, output_folder: Path, plink_path: Path =Path("plink/plink"),
                 window_snp: int = 50, window_het: int = 1, window_missing: int = 5,
                 window_threshold: float = 0.05, homozyg_gap: int = 1000, homozyg_het: int = 1000,
-                homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000) -> None:
+                homozyg_density: int = 50, homozyg_snp: int = 100, homozyg_kb: int = 1000) -> list[pl.DataFrame]:
 
     """
     Sends a file to PLINK for Run of Homozygosity (RoH) analysis.
@@ -182,7 +189,13 @@ def plink_roh(input_file: Path, output_folder: Path, plink_path: Path =Path("pli
     try:
         # Execute the PLINK command
         result = subprocess.run(roh_command, check=True, text=True, capture_output=True)
-        print("PLINK output:", result.stdout)
+
+        # Digest results
+        hom_df = pd.read_csv(f"{output_folder}.hom", sep="\\s+")
+        hom_indiv_df = pd.read_csv(f"{output_folder}.hom.indiv", sep="\\s+")
+        # Must cast from pandas to polars, the latter doesn't accept plink files
+        return [pl.from_pandas(hom_df), pl.from_pandas(hom_indiv_df)]
+
     except subprocess.CalledProcessError as e:
         print("Error running PLINK:", e.stderr)
         raise
@@ -191,7 +204,7 @@ def plink_roh(input_file: Path, output_folder: Path, plink_path: Path =Path("pli
         raise
 
 def plink_parentage(offspring_file: Path, parent1_file: Path, parent2_file: Path, genome_file: Path,
-                    plink_path: Path =Path("plink/plink")) -> None:
+                    plink_path: Path =Path("plink/plink")) -> pl.DataFrame:
     """
     Sends the target individual and potential parents' files to PLINK for parentage analysis.
 
@@ -203,12 +216,13 @@ def plink_parentage(offspring_file: Path, parent1_file: Path, parent2_file: Path
         plink_path (Path): The path to the PLINK executable (default: "plink/plink").
     """
 
-    _plink_produce_genome_file(
+    genome_results = _plink_produce_genome_file(
         tped_file_main=offspring_file,
         tped_files_to_merge=[parent1_file, parent2_file],
         output_genome_file=genome_file,
         plink_path=plink_path
     )
 
+    return genome_results
 
 
