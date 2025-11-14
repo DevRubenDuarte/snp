@@ -1,6 +1,6 @@
-polars      # data analysis
-psycopg     # PostgreSQL database adapter
-dotenv      # load environment variables from .env file
-fastapi     # web framework
-uvicorn     # webserver
-multipart   # handle multipart file uploads
+polars              # data analysis
+psycopg             # PostgreSQL database adapter
+dotenv              # load environment variables from .env file
+fastapi             # web framework
+uvicorn             # webserver
+python-multipart    # handle multipart file uploads
