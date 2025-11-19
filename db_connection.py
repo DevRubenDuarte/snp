@@ -6,6 +6,7 @@ from zip_file_handler import unzip_file
 import psycopg
 import dotenv
 import polars as pl
+import pandas as pd
 
 dotenv.load_dotenv()
 
@@ -36,6 +37,14 @@ def _map_bases(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("firstAllele").replace(mapping).cast(pl.Int8),
         pl.col("secondAllele").replace(mapping).cast(pl.Int8)
     ])
+
+def _check_file_is_valid(file_path: Path) -> bool:
+    tped = pd.read_csv(file_path, sep="\\s+", header=None)
+    if tped.shape[1] < 3:
+        raise ValueError("TPED file must have at least 3 columns.")
+    elif tped.shape[0] < 3:
+        raise ValueError("TPED file must have at least 3 rows.")
+    return True
 
 def process_zip(file_path: str) -> pl.DataFrame:
     # Unzip the file
@@ -184,3 +193,14 @@ def add_to_tbl_alleles(tped: pl.DataFrame, dog: int, source: int) -> None:
         raise
 
     logger.info("Alleles added successfully.")
+
+def send_tped_to_bucket(file_path: Path) -> None:
+    """
+    Sends a tped file to the S3 bucket.
+
+    Args:
+        file_path (Path): Path to the tped file.
+    """
+    if _check_file_is_valid(file_path):
+        # TODO insert file into S3 bucket
+        pass
