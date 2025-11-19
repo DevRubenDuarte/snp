@@ -1,5 +1,6 @@
 from plink_integration import plink_roh, plink_parentage
 from zip_file_handler import unzip_file
+from db_connection import send_file_to_bucket
 import polars as pl
 from fastapi import FastAPI, UploadFile, HTTPException
 from pathlib import Path
@@ -53,7 +54,7 @@ async def process_roh(dog_id: int, file: UploadFile):
         results_folder.mkdir(parents=True, exist_ok=True)
         results_file_path = results_folder / f"{dog_id}_roh"
 
-        # Save file and unzip if necessary
+        # Save file and unzip
         extracted_path, _ = _save_file_and_unzip(file, file_path)
 
         # Find .tped file
@@ -68,8 +69,11 @@ async def process_roh(dog_id: int, file: UploadFile):
         if len(matches) > 1:
             raise HTTPException(status_code=400, detail="Multiple .tped files found; please upload only one")
 
-        # completes path and removes extension
+        # Completes path and removes extension
         tped_file = Path(os.path.splitext(matches[0])[0])
+
+        # Validates and sends to bucket
+        send_file_to_bucket(Path(matches[0]))
 
         # Call plink_roh function
         roh_results, roh_indiv_results = plink_roh(tped_file, results_file_path)
