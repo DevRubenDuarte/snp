@@ -2,7 +2,7 @@ import polars as pl
 import pandas as pd
 from pathlib import Path
 
-def parentage_test(child_file: Path, mom_file: Path, dad_file: Path):
+def parentage_test(child_file: Path, mom_file: Path, dad_file: Path) -> str:
     columns = ["chromosome", "snp_id", "genetic_distance", "position"]
 
     child = pl.from_pandas(pd.read_csv(
@@ -35,8 +35,7 @@ def parentage_test(child_file: Path, mom_file: Path, dad_file: Path):
     elif mendellian_error_rate >= 0.02:
         if mitochondrial_error_rate < 0.02 and sex_chr_error_rates < 0.02:
             return "Moderate evidence of parentage"
-        else:
-            return "Weak evidence of parentage"
+    return "Weak evidence of parentage, unlikely match"
 
 def _test_autossomes(df: pl.DataFrame) -> float:
     total_snps = df.height
@@ -125,9 +124,3 @@ def _test_mt(mt_df: pl.DataFrame) -> float:
 
     num_errors = mendelian_errors.height
     return num_errors / total_snps if total_snps > 0 else 0
-
-child_file = Path("uploads/2/31220610301940.tped")
-mom_file = Path("uploads/2/31221010705445.tped")
-dad_file = Path("uploads/2/31220911009336.tped")
-
-print(parentage_test(child_file, mom_file, dad_file))

@@ -1,4 +1,5 @@
-from plink_integration import plink_roh, plink_parentage
+from parentage import parentage_test
+from plink_integration import plink_roh
 from zip_file_handler import unzip_file
 import polars as pl
 from fastapi import FastAPI, UploadFile, HTTPException
@@ -129,14 +130,13 @@ async def process_parentage(dog_id: int, offspring_file: UploadFile, parent1_fil
         if not path_offspring or not path_parent1 or not path_parent2:
             raise HTTPException(status_code=400, detail="No .tped file found in the uploaded content")
 
-        # Call plink_parentage function
-        genome_results = plink_parentage(path_offspring, path_parent1, path_parent2, output_genome_file)
+        parentage_test_result = parentage_test(path_offspring, path_parent1, path_parent2)
 
         return {
             "status": "success",
             "message": "Parentage analysis completed successfully",
             "dog_id": dog_id,
-            "genome_results": genome_results.write_json()
+            "genome_results": parentage_test_result
         }
 
     except Exception as e:

@@ -1,7 +1,9 @@
 import os
 import logging
 from typing import Optional
+from pathlib import Path
 from zip_file_handler import unzip_file
+
 
 import psycopg
 import dotenv
@@ -37,7 +39,7 @@ def _map_bases(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("secondAllele").replace(mapping).cast(pl.Int8)
     ])
 
-def process_zip(file_path: str) -> pl.DataFrame:
+def process_zip(file_path: Path) -> pl.DataFrame:
     # Unzip the file
     path, contents = unzip_file(file_path)
 

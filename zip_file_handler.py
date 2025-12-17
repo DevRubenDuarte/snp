@@ -6,8 +6,8 @@ def unzip_file(file_path: Path, output_folder: Path = Path("uploads")) -> tuple[
     """Unzips a zip file to the specified output folder.
 
     Args:
-        file_path (str): The path to the zip file.
-        output_folder (str): The folder where the contents will be extracted.
+        file_path (Path): The path to the zip file.
+        output_folder (Path): The folder where the contents will be extracted.
 
     Returns:
         tuple[str, dict[str, bytes]]: A tuple containing the path to the extracted folder and a dictionary
