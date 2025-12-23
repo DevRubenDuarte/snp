@@ -1,6 +1,8 @@
 import zipfile
 import os
 from pathlib import Path
+import polars as pl
+import pandas as pd
 
 def unzip_file(file_path: Path, output_folder: Path = Path("uploads")) -> tuple[Path, dict[str, bytes]]:
     """Unzips a zip file to the specified output folder.
@@ -14,7 +16,6 @@ def unzip_file(file_path: Path, output_folder: Path = Path("uploads")) -> tuple[
             of file names and their contents.
     """
 
-    zip_name = os.path.basename(file_path)
     os.makedirs(output_folder, exist_ok=True)  # Ensure the subfolder exists
     contents = {}
 
@@ -30,3 +31,10 @@ def unzip_file(file_path: Path, output_folder: Path = Path("uploads")) -> tuple[
 
     print("Unzipping completed. Contents:", contents.keys())
     return output_folder, contents
+
+def import_tped_to_dataframe(tped_path: Path) -> pl.DataFrame:
+    # Define column names based on TPED format
+    col_names = ["chromosome", "snp_id", "genetic_distance", "position", "firstAllele", "secondAllele"]
+    df = pd.read_csv(tped_path, sep="\\s+", names=col_names).drop("genetic_distance", axis=1)
+
+    return pl.from_pandas(df)

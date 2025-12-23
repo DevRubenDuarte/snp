@@ -1,12 +1,13 @@
+from db_connection import add_to_tbl_snp_alleles
 from parentage import parentage_test
 from plink_integration import plink_roh
-from zip_file_handler import unzip_file
-import polars as pl
+from snp_utils import unzip_file, import_tped_to_dataframe
 from fastapi import FastAPI, UploadFile, HTTPException
 from pathlib import Path
 import os
 import shutil
 import uvicorn
+import polars as pl
 
 app = FastAPI(title="File Upload API")
 
@@ -25,9 +26,14 @@ async def upload_file(dog_id: int, file: UploadFile):
         # Create parent directory if it doesn't exist
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save file
+        # Save file to disk
+        # TODO: Alter to work with s3 bucket
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+
+        tped_df = import_tped_to_dataframe(file_path)
+
+        add_to_tbl_snp_alleles(tped_df, dog_id, "EMBARK8")
 
         # Return success response
         return {

@@ -5,14 +5,15 @@ from pathlib import Path
 def parentage_test(child_file: Path, mom_file: Path, dad_file: Path) -> str:
     columns = ["chromosome", "snp_id", "genetic_distance", "position"]
 
+    # TODO: File handling should occur in utils, this func should receive dataframes
     child = pl.from_pandas(pd.read_csv(
-        child_file, sep="\\s+", names=columns + ["child_allele1", "child_allele2"])
+        child_file, sep="\\s+", names=columns + ["child_firstAllele", "child_secondAllele"])
         .drop("genetic_distance", axis=1))
     mom = pl.from_pandas(pd.read_csv(
-        mom_file, sep="\\s+", names=columns + ["mom_allele1", "mom_allele2"])
+        mom_file, sep="\\s+", names=columns + ["mom_firstAllele", "mom_secondAllele"])
         .drop("genetic_distance", axis=1))
     dad = pl.from_pandas(pd.read_csv(
-        dad_file, sep="\\s+", names=columns + ["dad_allele1", "dad_allele2"])
+        dad_file, sep="\\s+", names=columns + ["dad_firstAllele", "dad_secondAllele"])
         .drop("genetic_distance", axis=1))
 
     mom_dad_joined = mom.join(dad, on=["chromosome", "snp_id", "position"])
@@ -42,14 +43,14 @@ def _test_autossomes(df: pl.DataFrame) -> float:
 
     mendelian_errors = df.filter(
         ~(
-            ((pl.col("mom_allele1") == pl.col("child_allele1")) & (pl.col("dad_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("mom_allele2") == pl.col("child_allele1")) & (pl.col("dad_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("mom_allele1") == pl.col("child_allele1")) & (pl.col("dad_allele2") == pl.col("child_allele2"))) |
-            ((pl.col("mom_allele2") == pl.col("child_allele1")) & (pl.col("dad_allele2") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele1") == pl.col("child_allele1")) & (pl.col("mom_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele2") == pl.col("child_allele1")) & (pl.col("mom_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele1") == pl.col("child_allele1")) & (pl.col("mom_allele2") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele2") == pl.col("child_allele1")) & (pl.col("mom_allele2") == pl.col("child_allele2")))
+            ((pl.col("mom_firstAllele") == pl.col("child_firstAllele")) & (pl.col("dad_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("mom_secondAllele") == pl.col("child_firstAllele")) & (pl.col("dad_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("mom_firstAllele") == pl.col("child_firstAllele")) & (pl.col("dad_secondAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("mom_secondAllele") == pl.col("child_firstAllele")) & (pl.col("dad_secondAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_firstAllele") == pl.col("child_firstAllele")) & (pl.col("mom_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_secondAllele") == pl.col("child_firstAllele")) & (pl.col("mom_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_firstAllele") == pl.col("child_firstAllele")) & (pl.col("mom_secondAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_secondAllele") == pl.col("child_firstAllele")) & (pl.col("mom_secondAllele") == pl.col("child_secondAllele")))
         ))
 
     num_errors = mendelian_errors.height
@@ -67,12 +68,12 @@ def _child_is_male(y_df: pl.DataFrame) -> bool:
     if y_df.height == 0:
         return False
 
-    allele_counts = y_df.group_by("child_allele1", "child_allele2"
+    allele_counts = y_df.group_by("child_firstAllele", "child_secondAllele"
                         ).agg(pl.len().alias("count")
                         ).sort("count", descending=True)
     most_common = allele_counts[0]
 
-    if most_common["child_allele1"][0] != 0:
+    if most_common["child_firstAllele"][0] != 0:
         return True
     return False
 
@@ -80,7 +81,7 @@ def _test_y(y_df: pl.DataFrame) -> float:
     total_snps = y_df.height
     mendelian_errors = y_df.filter(
         ~(
-            (pl.col("dad_allele1") == pl.col("child_allele1"))
+            (pl.col("dad_firstAllele") == pl.col("child_firstAllele"))
         )
     )
 
@@ -92,8 +93,8 @@ def _test_x_male(x_df: pl.DataFrame) -> float:
 
     mendelian_errors = x_df.filter(
         ~(
-            (pl.col("mom_allele1") == pl.col("child_allele1")) |
-            (pl.col("mom_allele2") == pl.col("child_allele1"))
+            (pl.col("mom_firstAllele") == pl.col("child_firstAllele")) |
+            (pl.col("mom_secondAllele") == pl.col("child_firstAllele"))
         )
     )
 
@@ -105,10 +106,10 @@ def _test_x_female(x_df: pl.DataFrame) -> float:
 
     mendelian_errors = x_df.filter(
         ~(
-            ((pl.col("mom_allele1") == pl.col("child_allele1")) & (pl.col("dad_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("mom_allele2") == pl.col("child_allele1")) & (pl.col("dad_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele1") == pl.col("child_allele1")) & (pl.col("mom_allele1") == pl.col("child_allele2"))) |
-            ((pl.col("dad_allele1") == pl.col("child_allele1")) & (pl.col("mom_allele2") == pl.col("child_allele2")))
+            ((pl.col("mom_firstAllele") == pl.col("child_firstAllele")) & (pl.col("dad_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("mom_secondAllele") == pl.col("child_firstAllele")) & (pl.col("dad_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_firstAllele") == pl.col("child_firstAllele")) & (pl.col("mom_firstAllele") == pl.col("child_secondAllele"))) |
+            ((pl.col("dad_firstAllele") == pl.col("child_firstAllele")) & (pl.col("mom_secondAllele") == pl.col("child_secondAllele")))
         )
     )
 
@@ -119,7 +120,7 @@ def _test_mt(mt_df: pl.DataFrame) -> float:
     total_snps = mt_df.height
 
     mendelian_errors = mt_df.filter(
-        ~(pl.col("mom_allele1") == pl.col("child_allele1"))
+        ~(pl.col("mom_firstAllele") == pl.col("child_firstAllele"))
     )
 
     num_errors = mendelian_errors.height
